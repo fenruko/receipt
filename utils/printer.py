@@ -20,32 +20,93 @@ except Exception as e:
     print(f"Warning: Could not load Arial font: {e}")
     FONT_NAME = "Helvetica"
 
+from reportlab.lib.utils import simpleSplit
+from reportlab.lib.colors import black
+
 class PDFGenerator:
     def __init__(self, config_manager):
         self.config = config_manager
         self.filename = "receipt.pdf"
+        self.margin = 0.5 * cm
+        self.line_height = 1.5 * cm # Approximate line height for spacing
+        self.font_size_header = 14
+        self.font_size_body = 12
 
-    def generate(self, data):
-        paper_size = self.config.get("paper_size", "A4")
-        pagesize = A4
-        if paper_size == "A5":
-            pagesize = A5
-        # Add more sizes if needed, or custom
-
-        c = canvas.Canvas(self.filename, pagesize=pagesize)
-        width, height = pagesize
+    def calculate_height(self, data, width):
+        # Calculate total height required
+        total_height = 0
         
-        c.setFont(FONT_NAME, 14)
+        # Margins (Top + Bottom)
+        total_height += 2 * self.margin
         
         # Header
         header = self.config.get("header_text", "")
-        c.drawRightString(width - 2*cm, height - 2*cm, fix_text(header))
-        
-        y_position = height - 4*cm
-        
+        if header:
+            lines = simpleSplit(header, FONT_NAME, self.font_size_header, width - 2*self.margin)
+            total_height += len(lines) * (self.font_size_header + 5) + 1*cm
+            
         fields = self.config.get_fields()
+        for field in fields:
+            if not field.get("enabled", True):
+                continue
+            
+            # Label
+            total_height += (self.font_size_body + 5) 
+            
+            # Value (Wrapped)
+            value = data.get(field["id"], "")
+            lines = simpleSplit(value, FONT_NAME, self.font_size_body, width - 2*self.margin)
+            total_height += len(lines) * (self.font_size_body + 5)
+            
+            # Spacing between fields
+            total_height += 0.5 * cm
+            
+        # Footer
+        footer = self.config.get("footer_text", "")
+        if footer:
+             lines = simpleSplit(footer, FONT_NAME, self.font_size_body, width - 2*self.margin)
+             total_height += len(lines) * (self.font_size_body + 5) + 1*cm
+             
+        return total_height
+
+    def generate(self, data):
+        # Get dimensions in mm and convert to points
+        p_width_mm = self.config.get("paper_width", 80)
+        p_width = p_width_mm * cm / 10.0 # cm imported is actually 28.35 pts (1 inch / 2.54 * 72 ??? No cm is 28.3465)
+        # reportlab cm is a constant: 28.3464566929
+        # user input 80 is 80mm = 8cm. 
+        p_width = (p_width_mm / 10.0) * cm
         
-        # Draw fields
+        auto_height = self.config.get("auto_height", True)
+        
+        if auto_height:
+            p_height = self.calculate_height(data, p_width)
+        else:
+            p_height_mm = self.config.get("paper_height", 200)
+            p_height = (p_height_mm / 10.0) * cm
+
+        c = canvas.Canvas(self.filename, pagesize=(p_width, p_height))
+        
+        # Start drawing from top
+        y_position = p_height - self.margin
+        
+        # Header
+        c.setFont(FONT_NAME, self.font_size_header)
+        header = self.config.get("header_text", "")
+        if header:
+            # Center header
+            lines = simpleSplit(header, FONT_NAME, self.font_size_header, p_width - 2*self.margin)
+            for line in lines:
+                y_position -= (self.font_size_header + 5)
+                # Center align
+                text_width = c.stringWidth(fix_text(line), FONT_NAME, self.font_size_header)
+                c.drawString((p_width - text_width) / 2, y_position, fix_text(line))
+            y_position -= 0.5*cm # Spacing
+            
+        # Fields
+        fields = self.config.get_fields()
+        c.setFont(FONT_NAME, self.font_size_body)
+        
         for field in fields:
             if not field.get("enabled", True):
                 continue
@@ -53,30 +114,39 @@ class PDFGenerator:
             label = field["label"]
             value = data.get(field["id"], "")
             
-            # Simple list layout for now
-            # Label (Right aligned)
-            c.setFont(FONT_NAME, 12)
-            c.drawRightString(width - 2*cm, y_position, fix_text(label + ":"))
+            # Draw Label (Right Aligned)
+            # RTL: Label needs to be on the right
+            label_text = fix_text(label + ":")
+            c.drawRightString(p_width - self.margin, y_position - self.font_size_body, label_text)
             
-            # Value (Left of label)
-            # We estimate position. RTL requires careful X handling.
-            # fix_text handles the visual reversing, so we draw it normally but aligned right relative to the label?
-            # actually drawString draws from left to right.
-            # drawRightString draws the end of the string at x.
+            # Move down for value (or same line if we want compact?)
+            # Let's put value on next line for small receipts, or wrapped.
+            # actually for receipt, usually:
+            # Label:
+            # Value
             
-            # Let's put value slightly to the left of the label
-            c.drawRightString(width - 6*cm, y_position, fix_text(value))
+            y_position -= (self.font_size_body + 5)
             
-            y_position -= 1*cm
+            # Draw Value (Right Aligned or Block)
+            # For multiline, we split text
+            lines = simpleSplit(value, FONT_NAME, self.font_size_body, p_width - 2*self.margin)
             
-            if field["type"] == "textarea":
-                # Add extra space for textarea content if it's long? 
-                # For basic version, just one line or manual spacing
-                y_position -= 0.5*cm
+            for line in lines:
+                y_position -= (self.font_size_body + 5)
+                # Right align the value too for Arabic
+                c.drawRightString(p_width - self.margin, y_position, fix_text(line))
+                
+            y_position -= 0.3*cm
 
         # Footer
         footer = self.config.get("footer_text", "")
-        c.drawRightString(width - 2*cm, 2*cm, fix_text(footer))
+        if footer:
+            y_position -= 0.5*cm
+            lines = simpleSplit(footer, FONT_NAME, self.font_size_body, p_width - 2*self.margin)
+            for line in lines:
+                y_position -= (self.font_size_body + 5)
+                text_width = c.stringWidth(fix_text(line), FONT_NAME, self.font_size_body)
+                c.drawString((p_width - text_width) / 2, y_position, fix_text(line))
         
         c.save()
         return self.filename

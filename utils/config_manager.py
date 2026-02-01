@@ -5,7 +5,9 @@ CONFIG_FILE = "config.json"
 
 DEFAULT_CONFIG = {
     "printer_name": "",
-    "paper_size": "A4",
+    "paper_width": 80,
+    "paper_height": 200,
+    "auto_height": True,
     "fields": [
         {"id": "date", "label": "التاريخ", "type": "text", "enabled": True},
         {"id": "customer_name", "label": "اسم العميل", "type": "text", "enabled": True},

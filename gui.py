@@ -89,11 +89,34 @@ class SettingsWindow:
             
         self.printer_combo.pack(fill='x', padx=10)
 
-        # Paper Size
-        tk.Label(tab, text="حجم الورق:").pack(anchor='e', padx=10, pady=(10,0))
-        self.paper_combo = ttk.Combobox(tab, state="readonly", values=["A4", "A5"])
-        self.paper_combo.set(self.config.get("paper_size", "A4"))
-        self.paper_combo.pack(fill='x', padx=10)
+        # Paper Settings Frame
+        paper_frame = ttk.LabelFrame(tab, text="إعدادات الورق (mm)", padding=10)
+        paper_frame.pack(fill='x', padx=10, pady=10)
+
+        # Width
+        tk.Label(paper_frame, text="العرض:").grid(row=0, column=3, sticky='e')
+        self.width_entry = ttk.Entry(paper_frame, width=10)
+        self.width_entry.insert(0, str(self.config.get("paper_width", 80)))
+        self.width_entry.grid(row=0, column=2, padx=5)
+
+        # Height
+        tk.Label(paper_frame, text="الارتفاع:").grid(row=0, column=1, sticky='e')
+        self.height_entry = ttk.Entry(paper_frame, width=10)
+        self.height_entry.insert(0, str(self.config.get("paper_height", 200)))
+        self.height_entry.grid(row=0, column=0, padx=5)
+
+        # Auto Height
+        self.auto_height_var = tk.BooleanVar(value=self.config.get("auto_height", True))
+        self.auto_height_chk = ttk.Checkbutton(paper_frame, text="ارتفاع تلقائي", variable=self.auto_height_var, command=self.toggle_height_entry)
+        self.auto_height_chk.grid(row=1, column=0, columnspan=4, pady=(10,0))
+        
+        self.toggle_height_entry()
+
+    def toggle_height_entry(self):
+        if self.auto_height_var.get():
+            self.height_entry.config(state='disabled')
+        else:
+            self.height_entry.config(state='normal')
 
     def refresh_fields_list(self):
         self.fields_listbox.delete(0, tk.END)
@@ -143,7 +166,14 @@ class SettingsWindow:
         self.config.set("header_text", self.header_entry.get())
         self.config.set("footer_text", self.footer_entry.get())
         self.config.set("printer_name", self.printer_combo.get())
-        self.config.set("paper_size", self.paper_combo.get())
+        
+        try:
+            self.config.set("paper_width", float(self.width_entry.get()))
+            self.config.set("paper_height", float(self.height_entry.get()))
+        except ValueError:
+            pass # Ignore invalid numbers for now
+            
+        self.config.set("auto_height", self.auto_height_var.get())
         self.on_save()
         self.window.destroy()
 
