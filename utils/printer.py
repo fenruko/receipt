@@ -171,7 +171,39 @@ class PDFGenerator:
 
     def get_printers(self):
         try:
-            printers = [printer[2] for printer in win32print.EnumPrinters(2)]
+            flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+            printers = [printer[2] for printer in win32print.EnumPrinters(flags)]
             return printers
         except:
             return []
+
+    def get_printer_status(self, printer_name):
+        if not printer_name:
+            return "No printer selected"
+            
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            # Level 2 gives detailed info
+            info = win32print.GetPrinter(handle, 2)
+            win32print.ClosePrinter(handle)
+            
+            status_code = info['Status']
+            
+            if status_code == 0:
+                return "Ready"
+            
+            messages = []
+            if status_code & 0x00000004: messages.append("Paused")
+            if status_code & 0x00000002: messages.append("Error")
+            if status_code & 0x00000008: messages.append("Paper Jam")
+            if status_code & 0x00000010: messages.append("Paper Out")
+            if status_code & 0x00000080: messages.append("Offline")
+            if status_code & 0x00000200: messages.append("Busy")
+            if status_code & 0x00000400: messages.append("Printing")
+            
+            if not messages:
+                return f"Status Code: {status_code}"
+                
+            return ", ".join(messages)
+        except Exception as e:
+            return f"Error: {str(e)}"

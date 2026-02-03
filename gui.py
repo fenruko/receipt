@@ -188,7 +188,25 @@ class ReceiptApp:
         self.printer = PDFGenerator(self.config)
         self.entries = {}
         
+        self.status_var = tk.StringVar(value="جاري التحقق من الطابعة...")
+        
         self.create_main_layout()
+        self.check_printer_status()
+
+    def check_printer_status(self):
+        printer_name = self.config.get("printer_name")
+        if printer_name:
+            # Run in a separate thread if this blocks, but try simple first
+            try:
+                status = self.printer.get_printer_status(printer_name)
+                self.status_var.set(f"الطابعة: {printer_name} | الحالة: {status}")
+            except Exception as e:
+                 self.status_var.set(f"خطأ في الطابعة: {e}")
+        else:
+            self.status_var.set("لم يتم اختيار طابعة")
+        
+        # Check every 5 seconds
+        self.root.after(5000, self.check_printer_status)
 
     def create_main_layout(self):
         # Clear existing
@@ -229,6 +247,10 @@ class ReceiptApp:
         
         ttk.Button(action_frame, text="طباعة", command=self.print_receipt).pack(side='left', padx=5)
         ttk.Button(action_frame, text="معاينة", command=self.preview_receipt).pack(side='left', padx=5)
+
+        # Status Bar
+        status_bar = tk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor='e', padx=10)
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def get_data(self):
         data = {}
