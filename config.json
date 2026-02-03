@@ -1,0 +1,35 @@
+{
+    "printer_name": "OneNote (Desktop)",
+    "paper_width": 80.0,
+    "paper_height": 200.0,
+    "auto_height": true,
+    "fields": [
+        {
+            "id": "date",
+            "label": "التاريخ",
+            "type": "text",
+            "enabled": true
+        },
+        {
+            "id": "customer_name",
+            "label": "اسم العميل",
+            "type": "text",
+            "enabled": true
+        },
+        {
+            "id": "items",
+            "label": "التفاصيل",
+            "type": "textarea",
+            "enabled": true
+        },
+        {
+            "id": "total",
+            "label": "المجموع",
+            "type": "text",
+            "enabled": true
+        }
+    ],
+    "header_text": "فاتورة بيع",
+    "footer_text": "شكراً لزيارتكم",
+    "show_logo": true
+}

@@ -7,70 +7,97 @@ class SettingsWindow:
     def __init__(self, parent, config_manager, on_save_callback):
         self.window = tk.Toplevel(parent)
         self.window.title("الإعدادات")
-        self.window.geometry("500x600")
+        self.window.geometry("550x650")
         self.config = config_manager
         self.on_save = on_save_callback
         
+        # Apply style to this window too
+        self.window.configure(bg="#f4f6f9")
+        
         self.notebook = ttk.Notebook(self.window)
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.notebook.pack(fill='both', expand=True, padx=20, pady=20)
         
         # Tabs
         self.create_fields_tab()
         self.create_general_tab()
         
         # Save Button
-        save_btn = ttk.Button(self.window, text="حفظ الإعدادات", command=self.save_settings)
-        save_btn.pack(pady=10)
+        save_btn = ttk.Button(self.window, text="حفظ الإعدادات", style="Primary.TButton", command=self.save_settings)
+        save_btn.pack(pady=15)
 
     def create_fields_tab(self):
-        tab = ttk.Frame(self.notebook)
+        tab = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(tab, text="ترتيب الأسئلة")
         
         # List of fields
-        self.fields_listbox = tk.Listbox(tab, selectmode=tk.SINGLE)
-        self.fields_listbox.pack(fill='both', expand=True, padx=5, pady=5)
+        list_frame = ttk.Frame(tab)
+        list_frame.pack(fill='both', expand=True, pady=(0, 10))
+        
+        scrollbar = ttk.Scrollbar(list_frame)
+        scrollbar.pack(side='right', fill='y')
+        
+        self.fields_listbox = tk.Listbox(
+            list_frame, 
+            selectmode=tk.SINGLE, 
+            font=("Segoe UI", 10),
+            activestyle='none',
+            relief='flat',
+            bd=1,
+            highlightthickness=1,
+            highlightbackground="#dcdcdc",
+            yscrollcommand=scrollbar.set
+        )
+        self.fields_listbox.pack(fill='both', expand=True)
+        scrollbar.config(command=self.fields_listbox.yview)
         
         self.refresh_fields_list()
         
         # Controls
         controls_frame = ttk.Frame(tab)
-        controls_frame.pack(fill='x', padx=5, pady=5)
+        controls_frame.pack(fill='x', pady=5)
         
-        ttk.Button(controls_frame, text="↑", command=lambda: self.move_field(-1)).pack(side='right')
-        ttk.Button(controls_frame, text="↓", command=lambda: self.move_field(1)).pack(side='right')
-        ttk.Button(controls_frame, text="حذف", command=self.delete_field).pack(side='left')
+        ttk.Button(controls_frame, text="↑", width=5, command=lambda: self.move_field(-1)).pack(side='right', padx=2)
+        ttk.Button(controls_frame, text="↓", width=5, command=lambda: self.move_field(1)).pack(side='right', padx=2)
+        ttk.Button(controls_frame, text="حذف", style="Danger.TButton", command=self.delete_field).pack(side='left')
         
         # Add new field
-        add_frame = ttk.LabelFrame(tab, text="إضافة سؤال جديد", padding=5)
-        add_frame.pack(fill='x', padx=5, pady=5)
+        add_frame = ttk.LabelFrame(tab, text="إضافة سؤال جديد", padding=15)
+        add_frame.pack(fill='x', pady=10)
         
-        tk.Label(add_frame, text="السؤال:").grid(row=0, column=3)
-        self.new_label_entry = ttk.Entry(add_frame)
-        self.new_label_entry.grid(row=0, column=2)
+        input_frame = ttk.Frame(add_frame)
+        input_frame.pack(fill='x')
         
-        tk.Label(add_frame, text="المعرف (ID):").grid(row=0, column=1)
-        self.new_id_entry = ttk.Entry(add_frame)
-        self.new_id_entry.grid(row=0, column=0)
+        ttk.Label(input_frame, text="السؤال:").pack(side='right', padx=5)
+        self.new_label_entry = ttk.Entry(input_frame)
+        self.new_label_entry.pack(side='right', fill='x', expand=True, padx=5)
         
-        ttk.Button(add_frame, text="إضافة", command=self.add_field).grid(row=1, column=0, columnspan=4, pady=5)
+        ttk.Label(input_frame, text="ID:").pack(side='right', padx=5)
+        self.new_id_entry = ttk.Entry(input_frame, width=15)
+        self.new_id_entry.pack(side='right', padx=5)
+        
+        ttk.Button(add_frame, text="إضافة", style="Info.TButton", command=self.add_field).pack(fill='x', pady=(10, 0))
 
     def create_general_tab(self):
-        tab = ttk.Frame(self.notebook)
+        tab = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(tab, text="عام")
         
+        # Logo Option
+        self.show_logo_var = tk.BooleanVar(value=self.config.get("show_logo", False))
+        ttk.Checkbutton(tab, text="عرض الشعار (icon.png)", variable=self.show_logo_var).pack(anchor='e', pady=(0, 10))
+
         # Header/Footer
-        tk.Label(tab, text="نص الرأس:").pack(anchor='e', padx=10)
+        ttk.Label(tab, text="نص الرأس:").pack(anchor='e', pady=(0, 5))
         self.header_entry = ttk.Entry(tab, justify='right')
         self.header_entry.insert(0, self.config.get("header_text", ""))
-        self.header_entry.pack(fill='x', padx=10)
+        self.header_entry.pack(fill='x', pady=(0, 15))
         
-        tk.Label(tab, text="نص التذييل:").pack(anchor='e', padx=10)
+        ttk.Label(tab, text="نص التذييل:").pack(anchor='e', pady=(0, 5))
         self.footer_entry = ttk.Entry(tab, justify='right')
         self.footer_entry.insert(0, self.config.get("footer_text", ""))
-        self.footer_entry.pack(fill='x', padx=10)
+        self.footer_entry.pack(fill='x', pady=(0, 15))
         
         # Printer
-        tk.Label(tab, text="الطابعة:").pack(anchor='e', padx=10, pady=(10,0))
+        ttk.Label(tab, text="الطابعة:").pack(anchor='e', pady=(0, 5))
         self.printer_combo = ttk.Combobox(tab, state="readonly")
         
         # Fetch printers safely
@@ -87,28 +114,32 @@ class SettingsWindow:
         elif printers:
             self.printer_combo.current(0)
             
-        self.printer_combo.pack(fill='x', padx=10)
+        self.printer_combo.pack(fill='x', pady=(0, 15))
 
         # Paper Settings Frame
-        paper_frame = ttk.LabelFrame(tab, text="إعدادات الورق (mm)", padding=10)
-        paper_frame.pack(fill='x', padx=10, pady=10)
+        paper_frame = ttk.LabelFrame(tab, text="إعدادات الورق (mm)", padding=15)
+        paper_frame.pack(fill='x', pady=10)
+
+        # Container for inputs
+        dims_frame = ttk.Frame(paper_frame)
+        dims_frame.pack(fill='x')
 
         # Width
-        tk.Label(paper_frame, text="العرض:").grid(row=0, column=3, sticky='e')
-        self.width_entry = ttk.Entry(paper_frame, width=10)
+        ttk.Label(dims_frame, text="العرض:").pack(side='right', padx=5)
+        self.width_entry = ttk.Entry(dims_frame, width=10)
         self.width_entry.insert(0, str(self.config.get("paper_width", 80)))
-        self.width_entry.grid(row=0, column=2, padx=5)
+        self.width_entry.pack(side='right', padx=5)
 
         # Height
-        tk.Label(paper_frame, text="الارتفاع:").grid(row=0, column=1, sticky='e')
-        self.height_entry = ttk.Entry(paper_frame, width=10)
+        ttk.Label(dims_frame, text="الارتفاع:").pack(side='right', padx=(15, 5))
+        self.height_entry = ttk.Entry(dims_frame, width=10)
         self.height_entry.insert(0, str(self.config.get("paper_height", 200)))
-        self.height_entry.grid(row=0, column=0, padx=5)
+        self.height_entry.pack(side='right', padx=5)
 
         # Auto Height
         self.auto_height_var = tk.BooleanVar(value=self.config.get("auto_height", True))
-        self.auto_height_chk = ttk.Checkbutton(paper_frame, text="ارتفاع تلقائي", variable=self.auto_height_var, command=self.toggle_height_entry)
-        self.auto_height_chk.grid(row=1, column=0, columnspan=4, pady=(10,0))
+        self.auto_height_chk = ttk.Checkbutton(paper_frame, text="ارتفاع تلقائي (بناءً على المحتوى)", variable=self.auto_height_var, command=self.toggle_height_entry)
+        self.auto_height_chk.pack(anchor='e', pady=(10, 0))
         
         self.toggle_height_entry()
 
@@ -166,6 +197,7 @@ class SettingsWindow:
         self.config.set("header_text", self.header_entry.get())
         self.config.set("footer_text", self.footer_entry.get())
         self.config.set("printer_name", self.printer_combo.get())
+        self.config.set("show_logo", self.show_logo_var.get())
         
         try:
             self.config.set("paper_width", float(self.width_entry.get()))
@@ -182,7 +214,9 @@ class ReceiptApp:
     def __init__(self, root):
         self.root = root
         self.root.title("برنامج طباعة الفواتير")
-        self.root.geometry("600x700")
+        self.root.geometry("600x800")
+        
+        self.setup_styles()
         
         self.config = ConfigManager()
         self.printer = PDFGenerator(self.config)
@@ -193,19 +227,73 @@ class ReceiptApp:
         self.create_main_layout()
         self.check_printer_status()
 
+    def setup_styles(self):
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        # Define Colors
+        self.colors = {
+            'bg': '#f4f6f9',
+            'card': '#ffffff',
+            'primary': '#3498db',    # Blue
+            'primary_hover': '#2980b9',
+            'success': '#2ecc71',    # Green
+            'success_hover': '#27ae60',
+            'danger': '#e74c3c',     # Red
+            'danger_hover': '#c0392b',
+            'text': '#2c3e50',
+            'text_light': '#7f8c8d',
+            'border': '#dcdcdc'
+        }
+        
+        self.root.configure(bg=self.colors['bg'])
+        
+        # Base Configuration
+        self.style.configure(".", 
+            background=self.colors['bg'], 
+            foreground=self.colors['text'], 
+            font=("Segoe UI", 10)
+        )
+        
+        self.style.configure("TFrame", background=self.colors['bg'])
+        self.style.configure("TLabel", background=self.colors['bg'], foreground=self.colors['text'])
+        
+        # Card (White Box) Style
+        self.style.configure("Card.TFrame", background=self.colors['card'], relief="flat")
+        self.style.configure("Card.TLabel", background=self.colors['card'], font=("Segoe UI", 11))
+        
+        # Buttons
+        common_btn_props = {'borderwidth': 0, 'font': ("Segoe UI", 10, "bold"), 'padding': (15, 8)}
+        
+        # Primary Button (Settings/Info)
+        self.style.configure("Info.TButton", background=self.colors['primary'], foreground="white", **common_btn_props)
+        self.style.map("Info.TButton", background=[('active', self.colors['primary_hover'])])
+        
+        # Success Button (Print)
+        self.style.configure("Primary.TButton", background=self.colors['success'], foreground="white", **common_btn_props)
+        self.style.map("Primary.TButton", background=[('active', self.colors['success_hover'])])
+        
+        # Danger Button (Delete)
+        self.style.configure("Danger.TButton", background=self.colors['danger'], foreground="white", **common_btn_props)
+        self.style.map("Danger.TButton", background=[('active', self.colors['danger_hover'])])
+
+        # Entry
+        self.style.configure("TEntry", fieldbackground="white", padding=5, relief="flat", borderwidth=1)
+        
+        # Status Bar
+        self.style.configure("Status.TLabel", background="#dfe6e9", font=("Segoe UI", 9), padding=(10, 5))
+
     def check_printer_status(self):
         printer_name = self.config.get("printer_name")
         if printer_name:
-            # Run in a separate thread if this blocks, but try simple first
             try:
                 status = self.printer.get_printer_status(printer_name)
                 self.status_var.set(f"الطابعة: {printer_name} | الحالة: {status}")
             except Exception as e:
                  self.status_var.set(f"خطأ في الطابعة: {e}")
         else:
-            self.status_var.set("لم يتم اختيار طابعة")
+            self.status_var.set("لم يتم اختيار طابعة (الرجاء ضبط الإعدادات)")
         
-        # Check every 5 seconds
         self.root.after(5000, self.check_printer_status)
 
     def create_main_layout(self):
@@ -213,44 +301,60 @@ class ReceiptApp:
         for widget in self.root.winfo_children():
             widget.destroy()
 
-        # Top Bar (Settings)
-        top_bar = tk.Frame(self.root)
-        top_bar.pack(fill='x', padx=10, pady=5)
-        ttk.Button(top_bar, text="الإعدادات", command=self.open_settings).pack(side='left')
+        # --- Top Bar ---
+        top_bar = ttk.Frame(self.root, padding=(20, 15))
+        top_bar.pack(fill='x')
+        
+        # Settings Button
+        ttk.Button(top_bar, text="⚙ الإعدادات", style="Info.TButton", command=self.open_settings).pack(side='left')
+        
+        # Title (Optional)
+        ttk.Label(top_bar, text="إصدار إيصال جديد", font=("Segoe UI", 16, "bold")).pack(side='right')
 
-        # Form Area (Scrollable if needed, but simple for now)
-        self.form_frame = tk.Frame(self.root)
-        self.form_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        # --- Main Content Area ---
+        content_frame = ttk.Frame(self.root, padding=(20, 0, 20, 20))
+        content_frame.pack(fill='both', expand=True)
+
+        # Form Card
+        form_card = ttk.Frame(content_frame, style="Card.TFrame", padding=30)
+        form_card.pack(fill='both', expand=True)
+        
+        # Center the form content slightly
+        form_inner = ttk.Frame(form_card, style="Card.TFrame")
+        form_inner.pack(fill='both', expand=True)
         
         fields = self.config.get_fields()
         
         for i, field in enumerate(fields):
-            # Label (Right)
-            tk.Label(self.form_frame, text=field['label'], font=("Arial", 12)).grid(row=i, column=1, sticky='e', pady=5, padx=5)
+            # Row Frame
+            row = ttk.Frame(form_inner, style="Card.TFrame")
+            row.pack(fill='x', pady=8)
             
-            # Entry (Left)
+            # Label
+            ttk.Label(row, text=field['label'], style="Card.TLabel").pack(anchor='ne')
+            
+            # Entry
             if field['type'] == 'textarea':
-                ent = tk.Text(self.form_frame, height=4, width=30)
+                ent = tk.Text(row, height=4, font=("Segoe UI", 11), 
+                              bg="white", relief="flat", bd=1,
+                              highlightthickness=1, highlightbackground=self.colors['border'])
+                ent.pack(fill='x', pady=(5, 0))
             else:
-                ent = ttk.Entry(self.form_frame, justify='right', width=40)
+                ent = ttk.Entry(row, justify='right', font=("Segoe UI", 11))
+                ent.pack(fill='x', ipady=5, pady=(5, 0))
             
-            ent.grid(row=i, column=0, sticky='ew', pady=5, padx=5)
             self.entries[field['id']] = ent
-        
-        # Configure columns
-        self.form_frame.columnconfigure(0, weight=1)
-        self.form_frame.columnconfigure(1, weight=0)
 
-        # Actions Area
-        action_frame = tk.Frame(self.root)
-        action_frame.pack(fill='x', padx=20, pady=20)
+        # --- Actions Footer ---
+        action_frame = ttk.Frame(self.root, padding=20)
+        action_frame.pack(fill='x')
         
-        ttk.Button(action_frame, text="طباعة", command=self.print_receipt).pack(side='left', padx=5)
-        ttk.Button(action_frame, text="معاينة", command=self.preview_receipt).pack(side='left', padx=5)
+        ttk.Button(action_frame, text="طباعة الإيصال", style="Primary.TButton", width=20, command=self.print_receipt).pack(side='left', padx=(0, 10))
+        ttk.Button(action_frame, text="معاينة PDF", style="Info.TButton", width=15, command=self.preview_receipt).pack(side='left')
 
-        # Status Bar
-        status_bar = tk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor='e', padx=10)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        # --- Status Bar ---
+        status_bar = ttk.Label(self.root, textvariable=self.status_var, style="Status.TLabel", anchor='e')
+        status_bar.pack(side='bottom', fill='x')
 
     def get_data(self):
         data = {}

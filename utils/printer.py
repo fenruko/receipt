@@ -20,7 +20,7 @@ except Exception as e:
     print(f"Warning: Could not load Arial font: {e}")
     FONT_NAME = "Helvetica"
 
-from reportlab.lib.utils import simpleSplit
+from reportlab.lib.utils import simpleSplit, ImageReader
 from reportlab.lib.colors import black
 
 class PDFGenerator:
@@ -32,12 +32,23 @@ class PDFGenerator:
         self.font_size_header = 14
         self.font_size_body = 12
 
+    def get_logo_path(self):
+        extensions = ['.png', '.jpg', '.jpeg', '.bmp']
+        for ext in extensions:
+            if os.path.exists(f"icon{ext}"):
+                return f"icon{ext}"
+        return None
+
     def calculate_height(self, data, width):
         # Calculate total height required
         total_height = 0
         
         # Margins (Top + Bottom)
         total_height += 2 * self.margin
+        
+        # Logo
+        if self.config.get("show_logo", False) and self.get_logo_path():
+            total_height += 3.5 * cm
         
         # Header
         header = self.config.get("header_text", "")
@@ -72,7 +83,6 @@ class PDFGenerator:
     def generate(self, data):
         # Get dimensions in mm and convert to points
         p_width_mm = self.config.get("paper_width", 80)
-        p_width = p_width_mm * cm / 10.0 # cm imported is actually 28.35 pts (1 inch / 2.54 * 72 ??? No cm is 28.3465)
         # reportlab cm is a constant: 28.3464566929
         # user input 80 is 80mm = 8cm. 
         p_width = (p_width_mm / 10.0) * cm
@@ -87,8 +97,38 @@ class PDFGenerator:
 
         c = canvas.Canvas(self.filename, pagesize=(p_width, p_height))
         
+        # Draw Border
+        c.setLineWidth(1)
+        c.rect(self.margin/2, self.margin/2, p_width - self.margin, p_height - self.margin)
+        
         # Start drawing from top
         y_position = p_height - self.margin
+
+        # Logo
+        if self.config.get("show_logo", False):
+            logo_path = self.get_logo_path()
+            if logo_path:
+                try:
+                    img = ImageReader(logo_path)
+                    img_w, img_h = img.getSize()
+                    
+                    # Scale to max width/height of 3cm
+                    max_size = 3.0 * cm
+                    aspect = img_h / float(img_w)
+                    
+                    if img_w > img_h:
+                        draw_w = min(p_width - 2*self.margin, max_size)
+                        draw_h = draw_w * aspect
+                    else:
+                        draw_h = max_size
+                        draw_w = draw_h / aspect
+                        
+                    # Center
+                    x_pos = (p_width - draw_w) / 2
+                    y_position -= (draw_h + 0.5*cm)
+                    c.drawImage(img, x_pos, y_position + 0.5*cm, width=draw_w, height=draw_h, mask='auto')
+                except Exception as e:
+                    print(f"Error drawing logo: {e}")
         
         # Header
         c.setFont(FONT_NAME, self.font_size_header)
