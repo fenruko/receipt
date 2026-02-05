@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from utils.config_manager import ConfigManager
 from utils.printer import PDFGenerator
+from gui_import import ImportEditorWindow
 
 class SettingsWindow:
     def __init__(self, parent, config_manager, on_save_callback):
@@ -350,7 +351,8 @@ class ReceiptApp:
         action_frame.pack(fill='x')
         
         ttk.Button(action_frame, text="طباعة الإيصال", style="Primary.TButton", width=20, command=self.print_receipt).pack(side='left', padx=(0, 10))
-        ttk.Button(action_frame, text="معاينة PDF", style="Info.TButton", width=15, command=self.preview_receipt).pack(side='left')
+        ttk.Button(action_frame, text="معاينة PDF", style="Info.TButton", width=15, command=self.preview_receipt).pack(side='left', padx=(0, 10))
+        ttk.Button(action_frame, text="استيراد ملف", style="Info.TButton", width=15, command=self.import_data).pack(side='left')
 
         # --- Status Bar ---
         status_bar = ttk.Label(self.root, textvariable=self.status_var, style="Status.TLabel", anchor='e')
@@ -364,6 +366,20 @@ class ReceiptApp:
             else:
                 data[fid] = widget.get()
         return data
+
+    def import_data(self):
+        ImportEditorWindow(self.root, self.config, self.fill_form)
+
+    def fill_form(self, data):
+        for fid, value in data.items():
+            if fid in self.entries:
+                widget = self.entries[fid]
+                if isinstance(widget, tk.Text):
+                    widget.delete("1.0", tk.END)
+                    widget.insert("1.0", value)
+                else:
+                    widget.delete(0, tk.END)
+                    widget.insert(0, value)
 
     def preview_receipt(self):
         data = self.get_data()

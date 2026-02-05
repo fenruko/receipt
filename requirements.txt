@@ -3,3 +3,6 @@ arabic-reshaper
 python-bidi
 pywin32
 Pillow
+pandas
+openpyxl
+pdfplumber
