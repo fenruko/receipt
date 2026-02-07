@@ -34,6 +34,22 @@ class FileImporter:
         except Exception as e:
             return None, f"Error reading Excel: {str(e)}"
 
+    def get_column_data(self, file_path, column_index):
+        """
+        Returns a list of values from a specific column (0-based index) in an Excel file.
+        Skips the header row.
+        """
+        try:
+            df = pd.read_excel(file_path)
+            if column_index < 0 or column_index >= len(df.columns):
+                return None, "Column index out of range"
+            
+            # Select column by integer location
+            column_data = df.iloc[:, column_index].dropna().astype(str).tolist()
+            return column_data, None
+        except Exception as e:
+            return None, f"Error reading Excel column: {str(e)}"
+
     def identify_file_type(self, file_path):
         _, ext = os.path.splitext(file_path)
         ext = ext.lower()
