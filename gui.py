@@ -489,6 +489,7 @@ class ReceiptApp:
                 # Bindings for search
                 ent.bind("<F1>", lambda e, w=ent: self.open_search_popup(w))
                 ent.bind("<Double-1>", lambda e, w=ent: self.open_search_popup(w))
+                ent.bind("<Return>", lambda e, w=ent: self.open_search_popup(w))
             else:
                 ent = ttk.Entry(row, justify='right', font=("Segoe UI", 11))
                 ent.pack(fill='x', ipady=5, pady=(5, 0))
